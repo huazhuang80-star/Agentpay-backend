@@ -56,6 +56,30 @@ app.get("/api/v1/admin/status", (_req: Request, res: Response) => {
 });
 
 /**
+ * Prometheus-format metrics endpoint. Plain-text exposition format.
+ */
+app.get("/api/v1/metrics", (_req: Request, res: Response) => {
+  let totalRequests = 0;
+  for (const v of usageStore.values()) totalRequests += v;
+  const lines = [
+    "# HELP agentpay_services_total Number of registered services.",
+    "# TYPE agentpay_services_total gauge",
+    `agentpay_services_total ${servicesStore.size}`,
+    "# HELP agentpay_api_keys_total Number of registered API keys.",
+    "# TYPE agentpay_api_keys_total gauge",
+    `agentpay_api_keys_total ${apiKeyStore.size}`,
+    "# HELP agentpay_usage_requests_total Outstanding (unsettled) request counters.",
+    "# TYPE agentpay_usage_requests_total gauge",
+    `agentpay_usage_requests_total ${totalRequests}`,
+    "# HELP agentpay_paused 1 if the backend is paused, 0 otherwise.",
+    "# TYPE agentpay_paused gauge",
+    `agentpay_paused ${paused ? 1 : 0}`,
+  ];
+  res.setHeader("Content-Type", "text/plain; version=0.0.4");
+  res.send(lines.join("\n") + "\n");
+});
+
+/**
  * Aggregate stats snapshot. Single round-trip for dashboards.
  */
 app.get("/api/v1/stats", (_req: Request, res: Response) => {
