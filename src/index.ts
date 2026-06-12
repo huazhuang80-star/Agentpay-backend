@@ -33,6 +33,29 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Admin pause state
+// ─────────────────────────────────────────────────────────────────────────────
+// Mirrors the on-chain DataKey::Paused flag. When set, the gated
+// endpoints (POST /usage, POST /settle, POST /api-keys, …) refuse with
+// 503. Read endpoints stay available so dashboards can still inspect
+// state during a pause window.
+let paused = false;
+
+app.post("/api/v1/admin/pause", (_req: Request, res: Response) => {
+  paused = true;
+  res.json({ paused });
+});
+
+app.post("/api/v1/admin/unpause", (_req: Request, res: Response) => {
+  paused = false;
+  res.json({ paused });
+});
+
+app.get("/api/v1/admin/status", (_req: Request, res: Response) => {
+  res.json({ paused });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // API keys
 // ─────────────────────────────────────────────────────────────────────────────
 // In-memory map of opaque api keys to { label, createdAt }. The CRUD
