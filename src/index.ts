@@ -55,6 +55,25 @@ app.get("/api/v1/admin/status", (_req: Request, res: Response) => {
   res.json({ paused });
 });
 
+/**
+ * Aggregate stats snapshot. Single round-trip for dashboards.
+ */
+app.get("/api/v1/stats", (_req: Request, res: Response) => {
+  let totalRequests = 0;
+  const agents = new Set<string>();
+  for (const [key, total] of usageStore.entries()) {
+    totalRequests += total;
+    agents.add(key.split("::")[0]);
+  }
+  res.json({
+    totalServices: servicesStore.size,
+    totalApiKeys: apiKeyStore.size,
+    totalRequests,
+    uniqueAgents: agents.size,
+    paused,
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // API keys
 // ─────────────────────────────────────────────────────────────────────────────
