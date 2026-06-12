@@ -386,6 +386,15 @@ app.post("/api/v1/usage", (req: Request, res: Response) => {
     return;
   }
 
+  if (servicesDisabled.has(serviceId)) {
+    res.status(409).json({
+      error: "service_disabled",
+      message: `service ${serviceId} is currently disabled`,
+      requestId,
+    });
+    return;
+  }
+
   const key = usageKey(agent, serviceId);
   const prev = usageStore.get(key) ?? 0;
   // Saturate at Number.MAX_SAFE_INTEGER rather than overflow into floats.
