@@ -337,6 +337,23 @@ app.get("/api/v1/services", (_req: Request, res: Response) => {
   res.json({ services });
 });
 
+/** Create a new opaque API key with a human label. */
+app.post("/api/v1/api-keys", (req: Request, res: Response) => {
+  const { label } = req.body ?? {};
+  const requestId = (req as Request & { id?: string }).id;
+  if (typeof label !== "string" || label.length === 0 || label.length > 64) {
+    res.status(400).json({
+      error: "invalid_request",
+      message: "label must be a non-empty string up to 64 chars",
+      requestId,
+    });
+    return;
+  }
+  const key = `apk_${randomUUID().replace(/-/g, "")}`;
+  apiKeyStore.set(key, { label, createdAt: Date.now() });
+  res.status(201).json({ key, label });
+});
+
 // Unknown route: structured 404 echoing the request id.
 app.use((req: Request, res: Response) => {
   res.status(404).json({
