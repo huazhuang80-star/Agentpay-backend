@@ -364,6 +364,20 @@ app.post("/api/v1/settle", (req: Request, res: Response) => {
 });
 
 /**
+ * Cross-service lifetime total for an agent (sum of every service's
+ * accumulator). Mirrors on-chain get_total_usage_by_agent.
+ */
+app.get("/api/v1/agents/:agent/total", (req: Request, res: Response) => {
+  const { agent } = req.params;
+  const prefix = `${agent}::`;
+  let total = 0;
+  for (const [key, n] of usageStore.entries()) {
+    if (key.startsWith(prefix)) total += n;
+  }
+  res.json({ agent, total });
+});
+
+/**
  * List every (serviceId, total) pair currently accumulated for an agent.
  * Empty list for agents that have never recorded any usage.
  */
