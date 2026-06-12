@@ -337,6 +337,18 @@ app.get("/api/v1/services", (_req: Request, res: Response) => {
   res.json({ services });
 });
 
+/** List api keys with their metadata; never returns the key itself. */
+app.get("/api/v1/api-keys", (_req: Request, res: Response) => {
+  const items = Array.from(apiKeyStore.entries()).map(([key, meta]) => ({
+    // Show only a short prefix so operators can disambiguate without
+    // exposing the full token in logs.
+    prefix: key.slice(0, 8),
+    label: meta.label,
+    createdAt: meta.createdAt,
+  }));
+  res.json({ items });
+});
+
 /** Create a new opaque API key with a human label. */
 app.post("/api/v1/api-keys", (req: Request, res: Response) => {
   const { label } = req.body ?? {};
