@@ -102,6 +102,21 @@ app.get("/api/v1/usage/:agent/:serviceId", (req: Request, res: Response) => {
   res.json({ agent, serviceId, total });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Service registry
+// ─────────────────────────────────────────────────────────────────────────────
+// In-memory registry mirroring the on-chain DataKey::ServiceRegistered set.
+// Maps serviceId -> { priceStroops }. Process restart resets the map.
+const servicesStore = new Map<string, { priceStroops: number }>();
+
+/** List every registered service with its current price (stroops/request). */
+app.get("/api/v1/services", (_req: Request, res: Response) => {
+  const services = Array.from(servicesStore.entries()).map(
+    ([serviceId, meta]) => ({ serviceId, ...meta })
+  );
+  res.json({ services });
+});
+
 // Unknown route: structured 404 echoing the request id.
 app.use((req: Request, res: Response) => {
   res.status(404).json({
