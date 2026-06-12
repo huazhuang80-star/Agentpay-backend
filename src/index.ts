@@ -56,12 +56,14 @@ app.get("/api/v1/admin/status", (_req: Request, res: Response) => {
 });
 
 // Mutable in-process config; persisted in memory only. /config GET
-// returns the live values, /config PATCH updates them.
-const config = {
-  rateLimitPerWindow: RATE_LIMIT_PER_WINDOW,
-  rateLimitWindowMs: RATE_LIMIT_WINDOW_MS,
+// returns the live values, /config PATCH updates them. Initial values
+// are filled lazily in the GET handler to avoid forward-reference
+// ordering issues with the underlying constants.
+const config: Record<string, number> = {
+  rateLimitPerWindow: 60,
+  rateLimitWindowMs: 60_000,
   bulkMaxItems: 100,
-  eventLogCap: EVENT_LOG_CAP,
+  eventLogCap: 10_000,
 };
 
 app.get("/api/v1/config", (_req: Request, res: Response) => {

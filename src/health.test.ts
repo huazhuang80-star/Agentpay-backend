@@ -38,6 +38,22 @@ describe("AgentPay Backend", () => {
     assert.strictEqual(res.headers["x-request-id"], caller);
   });
 
+  it("registers and lists a service via /api/v1/services", async () => {
+    const create = await request(app)
+      .post("/api/v1/services")
+      .send({ serviceId: "svc-test-1", priceStroops: 100 });
+    assert.strictEqual(create.status, 201);
+    assert.strictEqual(create.body.serviceId, "svc-test-1");
+
+    const list = await request(app).get("/api/v1/services");
+    assert.strictEqual(list.status, 200);
+    const found = list.body.services.find(
+      (s: { serviceId: string }) => s.serviceId === "svc-test-1"
+    );
+    assert.ok(found, "service not present in list");
+    assert.strictEqual(found.priceStroops, 100);
+  });
+
   it("returns a structured 404 with requestId for unknown routes", async () => {
     const res = await request(app).get("/api/v1/this-route-does-not-exist");
     assert.strictEqual(res.status, 404);
