@@ -532,6 +532,18 @@ app.post("/api/v1/settle", (req: Request, res: Response) => {
   res.json({ agent, serviceId, requests, priceStroops: price, billedStroops });
 });
 
+/** List every distinct agent currently in the usage store. */
+app.get("/api/v1/agents", (req: Request, res: Response) => {
+  const limit = Math.min(
+    1000,
+    Math.max(1, Number((req.query.limit as string) ?? 200))
+  );
+  const seen = new Set<string>();
+  for (const key of usageStore.keys()) seen.add(key.split("::")[0]);
+  const agents = Array.from(seen).slice(0, limit);
+  res.json({ agents });
+});
+
 /**
  * Cross-service lifetime total for an agent (sum of every service's
  * accumulator). Mirrors on-chain get_total_usage_by_agent.
