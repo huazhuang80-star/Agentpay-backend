@@ -91,6 +91,17 @@ app.post("/api/v1/usage", (req: Request, res: Response) => {
   res.status(201).json({ agent, serviceId, total });
 });
 
+/**
+ * Query the accumulated request total for an (agent, serviceId) pair.
+ * Returns `{ agent, serviceId, total: 0 }` for never-seen pairs so callers
+ * do not have to special-case missing keys.
+ */
+app.get("/api/v1/usage/:agent/:serviceId", (req: Request, res: Response) => {
+  const { agent, serviceId } = req.params;
+  const total = usageStore.get(usageKey(agent, serviceId)) ?? 0;
+  res.json({ agent, serviceId, total });
+});
+
 // Unknown route: structured 404 echoing the request id.
 app.use((req: Request, res: Response) => {
   res.status(404).json({

@@ -71,6 +71,32 @@ describe("AgentPay Backend", () => {
     assert.strictEqual(res.body.total, 125);
   });
 
+  it("GET /api/v1/usage/:agent/:serviceId returns the accumulated total", async () => {
+    await request(app)
+      .post("/api/v1/usage")
+      .send({ agent: "agent-get", serviceId: "weather", requests: 7 });
+    await request(app)
+      .post("/api/v1/usage")
+      .send({ agent: "agent-get", serviceId: "weather", requests: 3 });
+    const res = await request(app).get("/api/v1/usage/agent-get/weather");
+    assert.strictEqual(res.status, 200);
+    assert.deepStrictEqual(res.body, {
+      agent: "agent-get",
+      serviceId: "weather",
+      total: 10,
+    });
+  });
+
+  it("GET /api/v1/usage/:agent/:serviceId returns 0 for an unseen pair", async () => {
+    const res = await request(app).get("/api/v1/usage/never-seen/never");
+    assert.strictEqual(res.status, 200);
+    assert.deepStrictEqual(res.body, {
+      agent: "never-seen",
+      serviceId: "never",
+      total: 0,
+    });
+  });
+
   for (const [label, payload] of [
     ["empty agent", { agent: "", serviceId: "s", requests: 1 }],
     ["empty serviceId", { agent: "a", serviceId: "", requests: 1 }],
