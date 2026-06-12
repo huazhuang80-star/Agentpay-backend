@@ -6,6 +6,17 @@ const PORT = process.env.PORT ?? 3001;
 
 app.use(express.json());
 
+// Minimal security headers — same shape Helmet would produce but without
+// the dependency footprint. Lets us start hardening the response surface
+// before deciding on a full Helmet/CSP policy.
+app.use((_req: Request, res: Response, next: NextFunction) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  next();
+});
+
 // Attach an X-Request-Id to every response, accepting the caller's value
 // if they supplied one (so a gateway/load-balancer chain stays correlated)
 // and otherwise minting a fresh UUID. The id is also exposed as `req.id` so
