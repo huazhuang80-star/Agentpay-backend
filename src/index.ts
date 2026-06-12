@@ -871,12 +871,13 @@ app.get("/api/v1/events/summary", (_req: Request, res: Response) => {
 
 app.get("/api/v1/events", (req: Request, res: Response) => {
   const since = Number((req.query.since as string) ?? 0);
+  const type = typeof req.query.type === "string" ? req.query.type : undefined;
   const limit = Math.min(
     EVENT_LOG_CAP,
     Math.max(1, Number((req.query.limit as string) ?? 100))
   );
   const items = eventLog
-    .filter((e) => e.ts >= since)
+    .filter((e) => e.ts >= since && (type === undefined || e.type === type))
     .slice(-limit);
   res.json({ items });
 });
