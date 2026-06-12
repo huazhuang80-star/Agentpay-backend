@@ -564,6 +564,21 @@ app.get("/api/v1/services/:serviceId/usage", (req: Request, res: Response) => {
   res.json({ serviceId, total, agents });
 });
 
+/** Top-N consumers of a service, sorted by descending total. */
+app.get("/api/v1/services/:serviceId/agents/top", (req: Request, res: Response) => {
+  const { serviceId } = req.params;
+  const limit = Math.min(100, Math.max(1, Number((req.query.limit as string) ?? 10)));
+  const suffix = `::${serviceId}`;
+  const items: { agent: string; total: number }[] = [];
+  for (const [key, total] of usageStore.entries()) {
+    if (key.endsWith(suffix)) {
+      items.push({ agent: key.slice(0, key.length - suffix.length), total });
+    }
+  }
+  items.sort((a, b) => b.total - a.total);
+  res.json({ serviceId, items: items.slice(0, limit) });
+});
+
 /** List every agent currently consuming a service. */
 app.get("/api/v1/services/:serviceId/agents", (req: Request, res: Response) => {
   const { serviceId } = req.params;
