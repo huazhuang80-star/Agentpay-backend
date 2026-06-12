@@ -74,6 +74,21 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+// Pause guard: when admin has paused the system, refuse every
+// state-changing method with 503. /admin/unpause is explicitly
+// exempted so the operator can always recover.
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (!paused) return next();
+  const method = req.method.toUpperCase();
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") return next();
+  if (req.path === "/api/v1/admin/unpause") return next();
+  res.status(503).json({
+    error: "service_paused",
+    message: "AgentPay backend is paused; only admin/unpause and reads are accepted",
+    requestId: (req as Request & { id?: string }).id,
+  });
+});
+
 // Minimal in-process rate limiter: 60 requests per IP per 60 second
 // window. A sliding window keyed by source IP; in-memory so the limiter
 // resets on process restart.
