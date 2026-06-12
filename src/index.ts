@@ -781,11 +781,28 @@ app.use((req: Request, res: Response) => {
 // uniform JSON so clients can branch on `error` and operators can grep
 // `requestId` to find the matching log line.
 app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+  // Special-case the common entity.too.large from express.json — surface
+  // it as a 413 instead of a generic 500 so clients can branch on it.
+  if (
+    err &&
+    typeof err === "object" &&
+    "type" in err &&
+    (err as { type: string }).type === "entity.too.large"
+  ) {
+    res.status(413).json({
+      error: "payload_too_large",
+      message: "request body exceeds the 100 KiB limit",
+      requestId: (req as Request & { id?: string }).id,
+    });
+    return;
+  }
   const message =
     err instanceof Error ? err.message : "Unexpected server error";
   res.status(500).json({
     error: "internal_error",
     message,
+    method: req.method,
+    path: req.path,
     requestId: (req as Request & { id?: string }).id,
   });
 });
