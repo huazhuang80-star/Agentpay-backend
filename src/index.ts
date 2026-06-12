@@ -32,6 +32,28 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+// Wall-clock request timer. Sets Server-Timing on the response and
+// emits a single structured log line on every completed request.
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const startNs = process.hrtime.bigint();
+  res.on("finish", () => {
+    const ms = Number(process.hrtime.bigint() - startNs) / 1_000_000;
+    res.setHeader("Server-Timing", `app;dur=${ms.toFixed(1)}`);
+    if (process.env.NODE_ENV !== "test") {
+      console.log(
+        JSON.stringify({
+          requestId: (req as Request & { id?: string }).id,
+          method: req.method,
+          path: req.path,
+          status: res.statusCode,
+          durationMs: Math.round(ms * 10) / 10,
+        })
+      );
+    }
+  });
+  next();
+});
+
 app.get("/health", (_req: Request, res: Response) => {
   res.json({ status: "ok", service: "agentpay-backend" });
 });
