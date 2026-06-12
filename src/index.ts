@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import express, { type NextFunction, type Request, type Response } from "express";
 
 const app = express();
@@ -608,7 +608,16 @@ app.get("/api/v1/services", (req: Request, res: Response) => {
     services.push({ serviceId, ...meta });
     if (services.length >= limit) break;
   }
-  res.json({ services });
+  // Weak ETag over the response body. Polling clients can supply
+  // If-None-Match to get a 304 when the list has not changed.
+  const body = JSON.stringify({ services });
+  const etag = `W/"${createHash("sha1").update(body).digest("base64").slice(0, 16)}"`;
+  if (req.header("if-none-match") === etag) {
+    res.status(304).end();
+    return;
+  }
+  res.setHeader("ETag", etag);
+  res.type("application/json").send(body);
 });
 
 /**
