@@ -569,6 +569,8 @@ app.get("/api/v1/agents/:agent/usage", (req: Request, res: Response) => {
 // Maps serviceId -> { priceStroops }. Process restart resets the map.
 const servicesStore = new Map<string, { priceStroops: number }>();
 const servicesDisabled = new Set<string>();
+type ServiceMetadataDto = { description: string; owner: string };
+const servicesMetadata = new Map<string, ServiceMetadataDto>();
 
 /** Batched register/update for services. Up to 50 items per call. */
 app.post("/api/v1/services/bulk", (req: Request, res: Response) => {
@@ -677,6 +679,21 @@ app.get("/api/v1/services/:serviceId", (req: Request, res: Response) => {
     res.status(404).json({
       error: "not_found",
       message: `service ${serviceId} is not registered`,
+      requestId: (req as Request & { id?: string }).id,
+    });
+    return;
+  }
+  res.json({ serviceId, ...meta });
+});
+
+/** Read the description + owner metadata for a service. */
+app.get("/api/v1/services/:serviceId/metadata", (req: Request, res: Response) => {
+  const { serviceId } = req.params;
+  const meta = servicesMetadata.get(serviceId);
+  if (!meta) {
+    res.status(404).json({
+      error: "not_found",
+      message: `no metadata for service ${serviceId}`,
       requestId: (req as Request & { id?: string }).id,
     });
     return;
