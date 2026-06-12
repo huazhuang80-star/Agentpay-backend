@@ -7,6 +7,28 @@ const PORT = process.env.PORT ?? 3001;
 // 100 KiB cap on request bodies. Every endpoint we expose accepts a
 // handful of short strings and numbers — anything larger is almost
 // certainly an abusive or buggy caller.
+// CORS — explicit allowlist from CORS_ALLOWED_ORIGINS (comma-separated).
+// Defaults to none in production; empty list means same-origin only.
+const corsAllowed = (process.env.CORS_ALLOWED_ORIGINS ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const origin = req.header("origin");
+  if (origin && corsAllowed.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type,X-Request-Id,X-API-Key");
+    res.setHeader("Access-Control-Max-Age", "86400");
+  }
+  if (req.method === "OPTIONS") {
+    res.status(204).send();
+    return;
+  }
+  next();
+});
+
 app.use(express.json({ limit: "100kb" }));
 
 // Minimal security headers — same shape Helmet would produce but without
