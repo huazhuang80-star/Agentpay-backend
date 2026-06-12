@@ -329,6 +329,19 @@ app.post("/api/v1/services", (req: Request, res: Response) => {
   res.status(isNew ? 201 : 200).json({ serviceId, priceStroops });
 });
 
+/** List every agent currently consuming a service. */
+app.get("/api/v1/services/:serviceId/agents", (req: Request, res: Response) => {
+  const { serviceId } = req.params;
+  const suffix = `::${serviceId}`;
+  const items: { agent: string; total: number }[] = [];
+  for (const [key, total] of usageStore.entries()) {
+    if (key.endsWith(suffix)) {
+      items.push({ agent: key.slice(0, key.length - suffix.length), total });
+    }
+  }
+  res.json({ serviceId, items });
+});
+
 /** Fetch a single service by id. 200 with metadata or 404. */
 app.get("/api/v1/services/:serviceId", (req: Request, res: Response) => {
   const { serviceId } = req.params;
