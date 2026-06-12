@@ -273,6 +273,44 @@ app.post("/api/v1/usage", (req: Request, res: Response) => {
 });
 
 /**
+ * Batched record_usage. Accepts up to 100 items per call. Each item is
+ * validated independently; failures are reported per-index so a
+ * partial batch can still land.
+ */
+app.post("/api/v1/usage/bulk", (req: Request, res: Response) => {
+  const requestId = (req as Request & { id?: string }).id;
+  const { items } = req.body ?? {};
+  if (!Array.isArray(items) || items.length === 0 || items.length > 100) {
+    res.status(400).json({
+      error: "invalid_request",
+      message: "items must be a non-empty array of up to 100 entries",
+      requestId,
+    });
+    return;
+  }
+  const results: { index: number; ok: boolean; total?: number; error?: string }[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const { agent, serviceId, requests } = items[i] ?? {};
+    if (
+      typeof agent !== "string" ||
+      typeof serviceId !== "string" ||
+      typeof requests !== "number" ||
+      !Number.isInteger(requests) ||
+      requests <= 0
+    ) {
+      results.push({ index: i, ok: false, error: "invalid_item" });
+      continue;
+    }
+    const key = usageKey(agent, serviceId);
+    const total = Math.min(Number.MAX_SAFE_INTEGER, (usageStore.get(key) ?? 0) + requests);
+    usageStore.set(key, total);
+    recordEvent("usage.recorded", { agent, serviceId, requests, total, bulk: true });
+    results.push({ index: i, ok: true, total });
+  }
+  res.status(201).json({ results });
+});
+
+/**
  * Query the accumulated request total for an (agent, serviceId) pair.
  * Returns `{ agent, serviceId, total: 0 }` for never-seen pairs so callers
  * do not have to special-case missing keys.
