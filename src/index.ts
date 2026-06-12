@@ -103,6 +103,23 @@ app.get("/api/v1/usage/:agent/:serviceId", (req: Request, res: Response) => {
 });
 
 /**
+ * Read-only quote of the outstanding billing for a pair (no drain).
+ * Mirrors compute_billing on the on-chain side.
+ */
+app.get("/api/v1/billing/:agent/:serviceId", (req: Request, res: Response) => {
+  const { agent, serviceId } = req.params;
+  const requests = usageStore.get(usageKey(agent, serviceId)) ?? 0;
+  const price = servicesStore.get(serviceId)?.priceStroops ?? 0;
+  res.json({
+    agent,
+    serviceId,
+    requests,
+    priceStroops: price,
+    billedStroops: requests * price,
+  });
+});
+
+/**
  * Settle an (agent, serviceId) pair: drain the accumulator and return the
  * billed amount (requests * priceStroops). Off-chain mirror of the
  * on-chain settle() entrypoint.
