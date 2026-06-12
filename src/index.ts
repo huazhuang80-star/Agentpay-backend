@@ -591,11 +591,23 @@ app.delete("/api/v1/services/:serviceId", (req: Request, res: Response) => {
   res.status(204).send();
 });
 
-/** List every registered service with its current price (stroops/request). */
-app.get("/api/v1/services", (_req: Request, res: Response) => {
-  const services = Array.from(servicesStore.entries()).map(
-    ([serviceId, meta]) => ({ serviceId, ...meta })
+/**
+ * List every registered service with its current price (stroops/request).
+ * Supports ?prefix=<str> to filter by a serviceId prefix and ?limit
+ * (default 200, max 1000) to bound the response size.
+ */
+app.get("/api/v1/services", (req: Request, res: Response) => {
+  const prefix = typeof req.query.prefix === "string" ? req.query.prefix : "";
+  const limit = Math.min(
+    1000,
+    Math.max(1, Number((req.query.limit as string) ?? 200))
   );
+  const services: { serviceId: string; priceStroops: number }[] = [];
+  for (const [serviceId, meta] of servicesStore.entries()) {
+    if (prefix && !serviceId.startsWith(prefix)) continue;
+    services.push({ serviceId, ...meta });
+    if (services.length >= limit) break;
+  }
   res.json({ services });
 });
 
