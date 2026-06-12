@@ -55,6 +55,19 @@ app.get("/api/v1/admin/status", (_req: Request, res: Response) => {
   res.json({ paused });
 });
 
+// Mutable in-process config; persisted in memory only. /config GET
+// returns the live values, /config PATCH updates them.
+const config = {
+  rateLimitPerWindow: RATE_LIMIT_PER_WINDOW,
+  rateLimitWindowMs: RATE_LIMIT_WINDOW_MS,
+  bulkMaxItems: 100,
+  eventLogCap: EVENT_LOG_CAP,
+};
+
+app.get("/api/v1/config", (_req: Request, res: Response) => {
+  res.json({ config });
+});
+
 /**
  * Prometheus-format metrics endpoint. Plain-text exposition format.
  */
