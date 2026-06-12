@@ -149,6 +149,33 @@ app.get("/api/v1/services/:serviceId", (req: Request, res: Response) => {
   res.json({ serviceId, ...meta });
 });
 
+/** Update only the price of an existing service. */
+app.patch("/api/v1/services/:serviceId/price", (req: Request, res: Response) => {
+  const { serviceId } = req.params;
+  const requestId = (req as Request & { id?: string }).id;
+  const meta = servicesStore.get(serviceId);
+  if (!meta) {
+    res.status(404).json({
+      error: "not_found",
+      message: `service ${serviceId} is not registered`,
+      requestId,
+    });
+    return;
+  }
+  const { priceStroops } = req.body ?? {};
+  if (typeof priceStroops !== "number" || !Number.isInteger(priceStroops) || priceStroops < 0) {
+    res.status(400).json({
+      error: "invalid_request",
+      message: "priceStroops must be a non-negative integer",
+      requestId,
+    });
+    return;
+  }
+  meta.priceStroops = priceStroops;
+  servicesStore.set(serviceId, meta);
+  res.json({ serviceId, ...meta });
+});
+
 /** Unregister a service. 204 on success, 404 if unknown. */
 app.delete("/api/v1/services/:serviceId", (req: Request, res: Response) => {
   const { serviceId } = req.params;
