@@ -523,6 +523,7 @@ app.get("/api/v1/agents/:agent/usage", (req: Request, res: Response) => {
 // In-memory registry mirroring the on-chain DataKey::ServiceRegistered set.
 // Maps serviceId -> { priceStroops }. Process restart resets the map.
 const servicesStore = new Map<string, { priceStroops: number }>();
+const servicesDisabled = new Set<string>();
 
 /** Batched register/update for services. Up to 50 items per call. */
 app.post("/api/v1/services/bulk", (req: Request, res: Response) => {
@@ -636,6 +637,32 @@ app.get("/api/v1/services/:serviceId", (req: Request, res: Response) => {
     return;
   }
   res.json({ serviceId, ...meta });
+});
+
+/** Toggle the disabled flag on an existing service. */
+app.patch("/api/v1/services/:serviceId/disabled", (req: Request, res: Response) => {
+  const { serviceId } = req.params;
+  const requestId = (req as Request & { id?: string }).id;
+  if (!servicesStore.has(serviceId)) {
+    res.status(404).json({
+      error: "not_found",
+      message: `service ${serviceId} is not registered`,
+      requestId,
+    });
+    return;
+  }
+  const { disabled } = req.body ?? {};
+  if (typeof disabled !== "boolean") {
+    res.status(400).json({
+      error: "invalid_request",
+      message: "disabled must be a boolean",
+      requestId,
+    });
+    return;
+  }
+  if (disabled) servicesDisabled.add(serviceId);
+  else servicesDisabled.delete(serviceId);
+  res.json({ serviceId, disabled });
 });
 
 /** Update only the price of an existing service. */
