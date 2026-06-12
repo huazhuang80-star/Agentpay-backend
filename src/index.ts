@@ -32,6 +32,32 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
+// Minimal in-process rate limiter: 60 requests per IP per 60 second
+// window. A sliding window keyed by source IP; in-memory so the limiter
+// resets on process restart.
+const RATE_LIMIT_PER_WINDOW = 60;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const rateBuckets = new Map<string, number[]>();
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
+  const now = Date.now();
+  const bucket = (rateBuckets.get(ip) ?? []).filter(
+    (t) => now - t < RATE_LIMIT_WINDOW_MS
+  );
+  if (bucket.length >= RATE_LIMIT_PER_WINDOW) {
+    res.setHeader("Retry-After", "60");
+    res.status(429).json({
+      error: "rate_limited",
+      message: `more than ${RATE_LIMIT_PER_WINDOW} requests per ${RATE_LIMIT_WINDOW_MS / 1000}s`,
+      requestId: (req as Request & { id?: string }).id,
+    });
+    return;
+  }
+  bucket.push(now);
+  rateBuckets.set(ip, bucket);
+  next();
+});
+
 // Wall-clock request timer. Sets Server-Timing on the response and
 // emits a single structured log line on every completed request.
 app.use((req: Request, res: Response, next: NextFunction) => {
