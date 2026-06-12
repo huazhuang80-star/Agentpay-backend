@@ -656,6 +656,7 @@ app.delete("/api/v1/services/:serviceId", (req: Request, res: Response) => {
  */
 app.get("/api/v1/services", (req: Request, res: Response) => {
   const prefix = typeof req.query.prefix === "string" ? req.query.prefix : "";
+  const q = typeof req.query.q === "string" ? req.query.q.toLowerCase() : "";
   const limit = Math.min(
     1000,
     Math.max(1, Number((req.query.limit as string) ?? 200))
@@ -663,6 +664,7 @@ app.get("/api/v1/services", (req: Request, res: Response) => {
   const services: { serviceId: string; priceStroops: number }[] = [];
   for (const [serviceId, meta] of servicesStore.entries()) {
     if (prefix && !serviceId.startsWith(prefix)) continue;
+    if (q && !serviceId.toLowerCase().includes(q)) continue;
     services.push({ serviceId, ...meta });
     if (services.length >= limit) break;
   }
