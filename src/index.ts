@@ -109,6 +109,31 @@ app.get("/api/v1/usage/:agent/:serviceId", (req: Request, res: Response) => {
 // Maps serviceId -> { priceStroops }. Process restart resets the map.
 const servicesStore = new Map<string, { priceStroops: number }>();
 
+/** Register a service with its per-request price. */
+app.post("/api/v1/services", (req: Request, res: Response) => {
+  const { serviceId, priceStroops } = req.body ?? {};
+  const requestId = (req as Request & { id?: string }).id;
+  if (typeof serviceId !== "string" || serviceId.length === 0 || serviceId.length > 128) {
+    res.status(400).json({
+      error: "invalid_request",
+      message: "serviceId must be a non-empty string up to 128 chars",
+      requestId,
+    });
+    return;
+  }
+  if (typeof priceStroops !== "number" || !Number.isInteger(priceStroops) || priceStroops < 0) {
+    res.status(400).json({
+      error: "invalid_request",
+      message: "priceStroops must be a non-negative integer",
+      requestId,
+    });
+    return;
+  }
+  const isNew = !servicesStore.has(serviceId);
+  servicesStore.set(serviceId, { priceStroops });
+  res.status(isNew ? 201 : 200).json({ serviceId, priceStroops });
+});
+
 /** List every registered service with its current price (stroops/request). */
 app.get("/api/v1/services", (_req: Request, res: Response) => {
   const services = Array.from(servicesStore.entries()).map(
