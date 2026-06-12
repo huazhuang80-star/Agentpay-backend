@@ -549,6 +549,21 @@ app.post("/api/v1/services", (req: Request, res: Response) => {
   res.status(isNew ? 201 : 200).json({ serviceId, priceStroops });
 });
 
+/** Cross-agent rollup of accumulated usage for a single service. */
+app.get("/api/v1/services/:serviceId/usage", (req: Request, res: Response) => {
+  const { serviceId } = req.params;
+  const suffix = `::${serviceId}`;
+  let total = 0;
+  let agents = 0;
+  for (const [key, value] of usageStore.entries()) {
+    if (key.endsWith(suffix)) {
+      total += value;
+      agents++;
+    }
+  }
+  res.json({ serviceId, total, agents });
+});
+
 /** List every agent currently consuming a service. */
 app.get("/api/v1/services/:serviceId/agents", (req: Request, res: Response) => {
   const { serviceId } = req.params;
