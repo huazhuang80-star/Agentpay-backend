@@ -9,22 +9,25 @@ API gateway, metering, and billing backend for the AgentPay protocol (machine-to
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 18.18+
 - npm
 
 ## Setup for contributors
 
 1. **Clone the repo** (or add remote and pull):
+
    ```bash
    git clone <repo-url> && cd agentpay-backend
    ```
 
 2. **Install dependencies**:
+
    ```bash
    npm install
    ```
 
 3. **Verify setup**:
+
    ```bash
    npm run build
    npm test
@@ -51,25 +54,28 @@ agentpay-backend/
 
 ## Commands
 
-| Command | Description |
-|--------|-------------|
-| `npm run build` | Compile TypeScript to `dist/` |
-| `npm test` | Build and run tests |
-| `npm run dev` | Run with ts-node |
-| `npm start` | Run production build |
+| Command          | Description                                 |
+| ---------------- | ------------------------------------------- |
+| `npm run build`  | Compile TypeScript to `dist/`               |
+| `npm run lint`   | Run ESLint over TypeScript source and tests |
+| `npm run format` | Check formatting with Prettier              |
+| `npm test`       | Build and run tests                         |
+| `npm run dev`    | Run with ts-node                            |
+| `npm start`      | Run production build                        |
 
 ## CI/CD
 
 On push/PR to `main`, GitHub Actions runs:
 
 - `npm ci`
+- `npm run lint`
 - `npm run build`
 - `npm test`
 
 ## Contributing
 
 1. Fork the repo and create a branch.
-2. Make changes; ensure `npm run build` and `npm test` pass.
+2. Make changes; ensure `npm run lint`, `npm run build`, and `npm test` pass.
 3. Open a pull request. CI must pass before merge.
 
 ## License

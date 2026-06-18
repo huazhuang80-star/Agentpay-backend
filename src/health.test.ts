@@ -3,25 +3,25 @@ import assert from "node:assert";
 import request from "supertest";
 import { app } from "./index.js";
 
-describe("AgentPay Backend", () => {
-  it("app is defined", () => {
+void describe("AgentPay Backend", () => {
+  void it("app is defined", () => {
     assert.ok(app);
   });
 
-  it("health endpoint returns 200 and status ok", async () => {
+  void it("health endpoint returns 200 and status ok", async () => {
     const res = await request(app).get("/health");
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.body?.status, "ok");
     assert.strictEqual(res.body?.service, "agentpay-backend");
   });
 
-  it("version endpoint returns version", async () => {
+  void it("version endpoint returns version", async () => {
     const res = await request(app).get("/api/v1/version");
     assert.strictEqual(res.status, 200);
     assert.ok(res.body?.version);
   });
 
-  it("attaches a fresh X-Request-Id when caller omits it", async () => {
+  void it("attaches a fresh X-Request-Id when caller omits it", async () => {
     const res = await request(app).get("/health");
     assert.strictEqual(res.status, 200);
     const id = res.headers["x-request-id"];
@@ -29,16 +29,14 @@ describe("AgentPay Backend", () => {
     assert.match(id, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
   });
 
-  it("echoes the caller-provided X-Request-Id when present", async () => {
+  void it("echoes the caller-provided X-Request-Id when present", async () => {
     const caller = "my-trace-id-abc-123";
-    const res = await request(app)
-      .get("/health")
-      .set("X-Request-Id", caller);
+    const res = await request(app).get("/health").set("X-Request-Id", caller);
     assert.strictEqual(res.status, 200);
     assert.strictEqual(res.headers["x-request-id"], caller);
   });
 
-  it("disables a service then refuses usage with 409", async () => {
+  void it("disables a service then refuses usage with 409", async () => {
     await request(app)
       .post("/api/v1/services")
       .send({ serviceId: "svc-dis", priceStroops: 10 });
@@ -52,14 +50,14 @@ describe("AgentPay Backend", () => {
     assert.strictEqual(res.body.error, "service_disabled");
   });
 
-  it("exports usage as CSV with the expected header", async () => {
+  void it("exports usage as CSV with the expected header", async () => {
     const res = await request(app).get("/api/v1/usage/export.csv");
     assert.strictEqual(res.status, 200);
     assert.ok(res.headers["content-type"].startsWith("text/csv"));
     assert.ok(res.text.split("\n")[0].includes("agent,serviceId,total"));
   });
 
-  it("admin/pause blocks writes and unpause restores them", async () => {
+  void it("admin/pause blocks writes and unpause restores them", async () => {
     await request(app).post("/api/v1/admin/pause");
     const blocked = await request(app)
       .post("/api/v1/usage")
@@ -73,16 +71,14 @@ describe("AgentPay Backend", () => {
     assert.strictEqual(ok.status, 201);
   });
 
-  it("computes billing and drains on settle", async () => {
+  void it("computes billing and drains on settle", async () => {
     await request(app)
       .post("/api/v1/services")
       .send({ serviceId: "svc-bill", priceStroops: 50 });
     await request(app)
       .post("/api/v1/usage")
       .send({ agent: "agent-bill", serviceId: "svc-bill", requests: 10 });
-    const quote = await request(app).get(
-      "/api/v1/billing/agent-bill/svc-bill"
-    );
+    const quote = await request(app).get("/api/v1/billing/agent-bill/svc-bill");
     assert.strictEqual(quote.status, 200);
     assert.strictEqual(quote.body.requests, 10);
     assert.strictEqual(quote.body.priceStroops, 50);
@@ -97,7 +93,7 @@ describe("AgentPay Backend", () => {
     assert.strictEqual(after.body.total, 0);
   });
 
-  it("registers and lists a service via /api/v1/services", async () => {
+  void it("registers and lists a service via /api/v1/services", async () => {
     const create = await request(app)
       .post("/api/v1/services")
       .send({ serviceId: "svc-test-1", priceStroops: 100 });
@@ -113,7 +109,7 @@ describe("AgentPay Backend", () => {
     assert.strictEqual(found.priceStroops, 100);
   });
 
-  it("returns a structured 404 with requestId for unknown routes", async () => {
+  void it("returns a structured 404 with requestId for unknown routes", async () => {
     const res = await request(app).get("/api/v1/this-route-does-not-exist");
     assert.strictEqual(res.status, 404);
     assert.strictEqual(res.body?.error, "not_found");
@@ -121,7 +117,7 @@ describe("AgentPay Backend", () => {
     assert.ok(res.body?.requestId);
   });
 
-  it("POST /api/v1/usage records a first write and returns the new total", async () => {
+  void it("POST /api/v1/usage records a first write and returns the new total", async () => {
     const res = await request(app)
       .post("/api/v1/usage")
       .send({ agent: "agent-a", serviceId: "weather_api", requests: 40 });
@@ -133,7 +129,7 @@ describe("AgentPay Backend", () => {
     });
   });
 
-  it("POST /api/v1/usage accumulates across calls for the same pair", async () => {
+  void it("POST /api/v1/usage accumulates across calls for the same pair", async () => {
     // First call: 100
     await request(app)
       .post("/api/v1/usage")
@@ -146,7 +142,7 @@ describe("AgentPay Backend", () => {
     assert.strictEqual(res.body.total, 125);
   });
 
-  it("GET /api/v1/usage/:agent/:serviceId returns the accumulated total", async () => {
+  void it("GET /api/v1/usage/:agent/:serviceId returns the accumulated total", async () => {
     await request(app)
       .post("/api/v1/usage")
       .send({ agent: "agent-get", serviceId: "weather", requests: 7 });
@@ -162,7 +158,7 @@ describe("AgentPay Backend", () => {
     });
   });
 
-  it("GET /api/v1/usage/:agent/:serviceId returns 0 for an unseen pair", async () => {
+  void it("GET /api/v1/usage/:agent/:serviceId returns 0 for an unseen pair", async () => {
     const res = await request(app).get("/api/v1/usage/never-seen/never");
     assert.strictEqual(res.status, 200);
     assert.deepStrictEqual(res.body, {
@@ -180,7 +176,7 @@ describe("AgentPay Backend", () => {
     ["non-integer requests", { agent: "a", serviceId: "s", requests: 1.5 }],
     ["wrong-type agent", { agent: 7, serviceId: "s", requests: 1 }],
   ] as const) {
-    it(`POST /api/v1/usage rejects ${label} with 400`, async () => {
+    void it(`POST /api/v1/usage rejects ${label} with 400`, async () => {
       const res = await request(app).post("/api/v1/usage").send(payload);
       assert.strictEqual(res.status, 400);
       assert.strictEqual(res.body.error, "invalid_request");

@@ -19,7 +19,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type,X-Request-Id,X-API-Key");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type,X-Request-Id,X-API-Key"
+    );
     res.setHeader("Access-Control-Max-Age", "86400");
   }
   if (req.method === "OPTIONS") {
@@ -301,7 +304,9 @@ app.get("/api/v1/openapi.json", (_req: Request, res: Response) => {
     },
     paths: {
       "/health": { get: { summary: "Shallow health check" } },
-      "/api/v1/health/deep": { get: { summary: "Deep health with process diagnostics" } },
+      "/api/v1/health/deep": {
+        get: { summary: "Deep health with process diagnostics" },
+      },
       "/api/v1/version": { get: { summary: "App version" } },
       "/api/v1/stats": { get: { summary: "Aggregate stats snapshot" } },
       "/api/v1/metrics": { get: { summary: "Prometheus metrics" } },
@@ -391,11 +396,7 @@ app.post("/api/v1/usage", (req: Request, res: Response) => {
     });
     return;
   }
-  if (
-    typeof requests !== "number" ||
-    !Number.isInteger(requests) ||
-    requests <= 0
-  ) {
+  if (typeof requests !== "number" || !Number.isInteger(requests) || requests <= 0) {
     res.status(400).json({
       error: "invalid_request",
       message: "requests must be a positive integer",
@@ -453,7 +454,10 @@ app.post("/api/v1/usage/bulk", (req: Request, res: Response) => {
       continue;
     }
     const key = usageKey(agent, serviceId);
-    const total = Math.min(Number.MAX_SAFE_INTEGER, (usageStore.get(key) ?? 0) + requests);
+    const total = Math.min(
+      Number.MAX_SAFE_INTEGER,
+      (usageStore.get(key) ?? 0) + requests
+    );
     usageStore.set(key, total);
     recordEvent("usage.recorded", { agent, serviceId, requests, total, bulk: true });
     results.push({ index: i, ok: true, total });
@@ -478,8 +482,7 @@ app.get("/api/v1/usage/:agent/:serviceId", (req: Request, res: Response) => {
  */
 /** CSV export of every (agent, serviceId, total) tuple. */
 app.get("/api/v1/usage/export.csv", (_req: Request, res: Response) => {
-  const escape = (v: string) =>
-    /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+  const escape = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
   const rows: string[] = ["agent,serviceId,total"];
   for (const [key, total] of usageStore.entries()) {
     const [agent, serviceId] = key.split("::");
@@ -552,10 +555,7 @@ app.post("/api/v1/settle", (req: Request, res: Response) => {
 
 /** List every distinct agent currently in the usage store. */
 app.get("/api/v1/agents", (req: Request, res: Response) => {
-  const limit = Math.min(
-    1000,
-    Math.max(1, Number((req.query.limit as string) ?? 200))
-  );
+  const limit = Math.min(1000, Math.max(1, Number((req.query.limit as string) ?? 200)));
   const seen = new Set<string>();
   for (const key of usageStore.keys()) seen.add(key.split("::")[0]);
   const agents = Array.from(seen).slice(0, limit);
@@ -614,22 +614,24 @@ app.post("/api/v1/services/bulk", (req: Request, res: Response) => {
     });
     return;
   }
-  const results = items.map((it: { serviceId?: unknown; priceStroops?: unknown }, i: number) => {
-    const { serviceId, priceStroops } = it ?? {};
-    if (
-      typeof serviceId !== "string" ||
-      serviceId.length === 0 ||
-      serviceId.length > 128 ||
-      typeof priceStroops !== "number" ||
-      !Number.isInteger(priceStroops) ||
-      priceStroops < 0
-    ) {
-      return { index: i, ok: false, error: "invalid_item" };
+  const results = items.map(
+    (it: { serviceId?: unknown; priceStroops?: unknown }, i: number) => {
+      const { serviceId, priceStroops } = it ?? {};
+      if (
+        typeof serviceId !== "string" ||
+        serviceId.length === 0 ||
+        serviceId.length > 128 ||
+        typeof priceStroops !== "number" ||
+        !Number.isInteger(priceStroops) ||
+        priceStroops < 0
+      ) {
+        return { index: i, ok: false, error: "invalid_item" };
+      }
+      const isNew = !servicesStore.has(serviceId);
+      servicesStore.set(serviceId, { priceStroops });
+      return { index: i, ok: true, serviceId, priceStroops, created: isNew };
     }
-    const isNew = !servicesStore.has(serviceId);
-    servicesStore.set(serviceId, { priceStroops });
-    return { index: i, ok: true, serviceId, priceStroops, created: isNew };
-  });
+  );
   res.status(201).json({ results });
 });
 
@@ -637,7 +639,11 @@ app.post("/api/v1/services/bulk", (req: Request, res: Response) => {
 app.post("/api/v1/services", (req: Request, res: Response) => {
   const { serviceId, priceStroops } = req.body ?? {};
   const requestId = (req as Request & { id?: string }).id;
-  if (typeof serviceId !== "string" || serviceId.length === 0 || serviceId.length > 128) {
+  if (
+    typeof serviceId !== "string" ||
+    serviceId.length === 0 ||
+    serviceId.length > 128
+  ) {
     res.status(400).json({
       error: "invalid_request",
       message: "serviceId must be a non-empty string up to 128 chars",
@@ -645,7 +651,11 @@ app.post("/api/v1/services", (req: Request, res: Response) => {
     });
     return;
   }
-  if (typeof priceStroops !== "number" || !Number.isInteger(priceStroops) || priceStroops < 0) {
+  if (
+    typeof priceStroops !== "number" ||
+    !Number.isInteger(priceStroops) ||
+    priceStroops < 0
+  ) {
     res.status(400).json({
       error: "invalid_request",
       message: "priceStroops must be a non-negative integer",
@@ -804,7 +814,11 @@ app.patch("/api/v1/services/:serviceId/price", (req: Request, res: Response) => 
     return;
   }
   const { priceStroops } = req.body ?? {};
-  if (typeof priceStroops !== "number" || !Number.isInteger(priceStroops) || priceStroops < 0) {
+  if (
+    typeof priceStroops !== "number" ||
+    !Number.isInteger(priceStroops) ||
+    priceStroops < 0
+  ) {
     res.status(400).json({
       error: "invalid_request",
       message: "priceStroops must be a non-negative integer",
@@ -840,10 +854,7 @@ app.delete("/api/v1/services/:serviceId", (req: Request, res: Response) => {
 app.get("/api/v1/services", (req: Request, res: Response) => {
   const prefix = typeof req.query.prefix === "string" ? req.query.prefix : "";
   const q = typeof req.query.q === "string" ? req.query.q.toLowerCase() : "";
-  const limit = Math.min(
-    1000,
-    Math.max(1, Number((req.query.limit as string) ?? 200))
-  );
+  const limit = Math.min(1000, Math.max(1, Number((req.query.limit as string) ?? 200)));
   const services: { serviceId: string; priceStroops: number }[] = [];
   for (const [serviceId, meta] of servicesStore.entries()) {
     if (prefix && !serviceId.startsWith(prefix)) continue;
@@ -1037,7 +1048,11 @@ app.patch("/api/v1/webhooks/:id", (req: Request, res: Response) => {
     existing.url = url;
   }
   if (events !== undefined) {
-    if (!Array.isArray(events) || events.length === 0 || events.some((e) => typeof e !== "string")) {
+    if (
+      !Array.isArray(events) ||
+      events.length === 0 ||
+      events.some((e) => typeof e !== "string")
+    ) {
       res.status(400).json({
         error: "invalid_request",
         message: "events must be a non-empty array of strings",
@@ -1062,7 +1077,11 @@ app.post("/api/v1/webhooks", (req: Request, res: Response) => {
     });
     return;
   }
-  if (!Array.isArray(events) || events.length === 0 || events.some((e) => typeof e !== "string")) {
+  if (
+    !Array.isArray(events) ||
+    events.length === 0 ||
+    events.some((e) => typeof e !== "string")
+  ) {
     res.status(400).json({
       error: "invalid_request",
       message: "events must be a non-empty array of strings",
@@ -1104,8 +1123,7 @@ app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
     });
     return;
   }
-  const message =
-    err instanceof Error ? err.message : "Unexpected server error";
+  const message = err instanceof Error ? err.message : "Unexpected server error";
   res.status(500).json({
     error: "internal_error",
     message,
