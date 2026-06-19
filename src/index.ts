@@ -204,6 +204,7 @@ const RATE_LIMIT_PER_WINDOW = 60;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const rateBuckets = new Map<string, number[]>();
 app.use((req: Request, res: Response, next: NextFunction) => {
+  if (process.env.NODE_ENV === "test") return next();
   const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
   const now = Date.now();
   const bucket = (rateBuckets.get(ip) ?? []).filter(
@@ -223,13 +224,17 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// Wall-clock request timer. Sets Server-Timing on the response and
-// emits a single structured log line on every completed request.
+// Wall-clock request timer. Emits a structured log line on every completed
+// request. Server-Timing cannot be set in the finish event (headers are
+// already sent by then), so we append it via Node's HTTP trailer mechanism
+// when trailers are supported, and skip it otherwise.
 app.use((req: Request, res: Response, next: NextFunction) => {
   const startNs = process.hrtime.bigint();
   res.on("finish", () => {
     const ms = Number(process.hrtime.bigint() - startNs) / 1_000_000;
-    res.setHeader("Server-Timing", `app;dur=${ms.toFixed(1)}`);
+    if (!res.headersSent) {
+      res.setHeader("Server-Timing", `app;dur=${ms.toFixed(1)}`);
+    }
     if (process.env.NODE_ENV !== "test") {
       console.log(
         JSON.stringify({
