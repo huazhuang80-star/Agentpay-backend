@@ -487,7 +487,10 @@ app.get("/api/v1/usage/:agent/:serviceId", (req: Request, res: Response) => {
  */
 /** CSV export of every (agent, serviceId, total) tuple. */
 app.get("/api/v1/usage/export.csv", (_req: Request, res: Response) => {
-  const escape = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  const escape = (v: string) => {
+    const sanitized = /^[=+\-@]/.test(v) ? `'${v}` : v;
+    return /[",\n]/.test(sanitized) ? `"${sanitized.replace(/"/g, '""')}"` : sanitized;
+  };
   const rows: string[] = ["agent,serviceId,total"];
   for (const [key, total] of usageStore.entries()) {
     const [agent, serviceId] = key.split("::");

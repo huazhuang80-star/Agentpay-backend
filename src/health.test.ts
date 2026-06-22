@@ -57,6 +57,17 @@ void describe("AgentPay Backend", () => {
     assert.ok(res.text.split("\n")[0].includes("agent,serviceId,total"));
   });
 
+  void it("escapes formula-like values in usage CSV exports", async () => {
+    await request(app)
+      .post("/api/v1/usage")
+      .send({ agent: "=cmd", serviceId: "+sum", requests: 1 });
+
+    const res = await request(app).get("/api/v1/usage/export.csv");
+
+    assert.strictEqual(res.status, 200);
+    assert.match(res.text, /^'=cmd,'\+sum,1$/m);
+  });
+
   void it("admin/pause blocks writes and unpause restores them", async () => {
     await request(app).post("/api/v1/admin/pause");
     const blocked = await request(app)
