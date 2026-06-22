@@ -39,6 +39,22 @@ API gateway, metering, and billing backend for the AgentPay protocol (machine-to
    ```
    Server runs at `http://localhost:3001`. Try `GET /health` and `GET /api/v1/version`.
 
+## Configuration
+
+Copy the committed example file before running locally:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Default | Effect |
+| -------- | ------- | ------ |
+| `PORT` | `3001` | HTTP port used by the Express server. |
+| `CORS_ALLOWED_ORIGINS` | empty | Comma-separated allowlist for browser origins. When empty, the API does not set cross-origin CORS headers and same-origin requests continue to work. |
+| `NODE_ENV` | unset | Set to `test` to disable request rate limiting and request logging in tests. Use `development` for local runs and `production` for deployed builds. |
+
+Keep real `.env` files untracked. `.env.example` contains only safe placeholder values.
+
 ## Project structure
 
 ```
